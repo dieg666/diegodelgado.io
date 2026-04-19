@@ -1,0 +1,58 @@
+---
+import { nav, site, type NavKey } from "@/data/site";
+
+interface Props {
+  page: NavKey;
+  /** Visible path segment in the prompt; defaults from `page`. */
+  path?: string;
+}
+
+const { page, path } = Astro.props;
+const segment = path ?? (page === "home" ? "" : page);
+---
+<div class="shell">
+  <header class="shell-header">
+    <span class="who">diego@sre</span>
+    <span class="col">:</span>
+    <span class="path">~/{segment}</span>
+    <span class="prompt">$</span>
+    <span class="header-right">
+      <span class="domain">{site.domain}</span>
+      <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+        <span class="when-light">☾</span>
+        <span class="when-dark">☀</span>
+      </button>
+    </span>
+  </header>
+
+  <nav class="shell-nav">
+    {nav.map((n) => (
+      <a href={n.href} aria-current={n.key === page ? "page" : undefined}>
+        {n.key === page ? `[${n.label}]` : n.label}
+      </a>
+    ))}
+  </nav>
+
+  <main class="shell-body">
+    <slot />
+  </main>
+
+  <footer class="shell-footer">
+    <span>{"// "}last deploy {site.lastDeploy}</span>
+    {site.links.map((l) => (
+      <a href={l.url}>{l.label}</a>
+    ))}
+  </footer>
+</div>
+<script is:inline>
+  (function () {
+    var btn = document.querySelector(".theme-toggle");
+    if (!btn) return;
+    btn.addEventListener("click", function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      var next = cur === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", next);
+      try { localStorage.setItem("theme", next); } catch (_) {}
+    });
+  })();
+</script>

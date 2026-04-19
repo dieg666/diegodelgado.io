@@ -1,0 +1,29 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import SloCalculator from "@/components/SloCalculator";
+import { site } from "@/data/site";
+
+export function getStaticPaths() {
+  return site.tools.map((t) => ({ params: { slug: t.slug }, props: { tool: t } }));
+}
+
+const { tool } = Astro.props;
+---
+<Base title={tool.title} description={tool.blurb}>
+  <Shell page="tools" path={`tools/${tool.slug}`}>
+    <div class="tool">
+      <div class="breadcrumb">/ tools / {tool.slug}</div>
+      <h1>{tool.title.toLowerCase()}</h1>
+      <p class="pitch">{tool.blurb}</p>
+
+      {tool.slug === "slo-calculator" ? (
+        <SloCalculator client:load />
+      ) : (
+        <div class="tool-placeholder">
+          {"// "}coming soon. this tool is on the list — sketch lives in the changelog.
+        </div>
+      )}
+    </div>
+  </Shell>
+</Base>

@@ -1,0 +1,62 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import { getCollection } from "astro:content";
+import { site } from "@/data/site";
+
+export async function getStaticPaths() {
+  const posts = await getCollection("writings", ({ data }) => !data.draft);
+  posts.sort((a, b) => b.data.date.localeCompare(a.data.date));
+  return posts.map((post, idx) => ({
+    params: { slug: post.slug },
+    props: {
+      post,
+      // newer first → idx-1 is newer, idx+1 is older
+      newer: posts[idx - 1] ?? null,
+      older: posts[idx + 1] ?? null,
+    },
+  }));
+}
+
+const { post, newer, older } = Astro.props;
+const { Content } = await post.render();
+const ghSrc = `https://github.com/${site.github}/diegodelgado.io/blob/main/src/content/writings/${post.slug}.md`;
+---
+<Base title={post.data.title} description={post.data.excerpt} ogImage={`/og/${post.slug}.png`}>
+  <Shell page="writings" path={`writings/${post.slug}`}>
+    <article class="post">
+      <div class="post-meta">
+        <span class="post-date">{post.data.date}</span>
+        <span class="post-date-sep">·</span>
+        <span>{post.data.read} min read</span>
+        <span>·</span>
+        <span>{post.data.words.toLocaleString()} words</span>
+        <span>·</span>
+        <a href={ghSrc} target="_blank" rel="noopener">view source ↗</a>
+      </div>
+      <h1>{post.data.title}</h1>
+      <div class="tags">tags: {post.data.tags.map((t) => `#${t}`).join(" ")}</div>
+
+      <Content />
+
+      <div class="post-discuss">
+        discuss: <a href="#">hn</a> · <a href="#">lobsters</a>
+      </div>
+
+      <div class="post-prev-next">
+        <div>
+          <div class="label">← prev</div>
+          {older ? (
+            <a href={`/writings/${older.slug}/`}>{older.data.title}</a>
+          ) : <span class="dim">—</span>}
+        </div>
+        <div class="next">
+          <div class="label">next →</div>
+          {newer ? (
+            <a href={`/writings/${newer.slug}/`}>{newer.data.title}</a>
+          ) : <span class="dim">—</span>}
+        </div>
+      </div>
+    </article>
+  </Shell>
+</Base>

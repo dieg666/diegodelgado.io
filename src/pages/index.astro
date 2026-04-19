@@ -1,0 +1,94 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import { site } from "@/data/site";
+import { getCollection } from "astro:content";
+
+type UptimeStatus = "ok" | "down" | "unknown";
+interface UptimePayload {
+  status: UptimeStatus;
+  uptime_pct: number | null;
+  p95_ms: number | null;
+  checks: number;
+}
+
+async function fetchUptime(): Promise<UptimePayload> {
+  const fallback: UptimePayload = { status: "unknown", uptime_pct: null, p95_ms: null, checks: 0 };
+  try {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 4000);
+    const res = await fetch("https://diegodelgado.io/api/uptime", { signal: ctl.signal });
+    clearTimeout(timer);
+    if (!res.ok) return fallback;
+    return (await res.json()) as UptimePayload;
+  } catch {
+    return fallback;
+  }
+}
+
+const uptime = await fetchUptime();
+const statusClass =
+  uptime.status === "ok" ? "ok" : uptime.status === "down" ? "down" : "unknown";
+const uptimePct =
+  uptime.uptime_pct != null ? `${uptime.uptime_pct.toFixed(2)}%` : "—";
+const p95 = uptime.p95_ms != null ? `${Math.round(uptime.p95_ms)}ms` : "—";
+
+const all = await getCollection("writings", ({ data }) => !data.draft);
+all.sort((a, b) => b.data.date.localeCompare(a.data.date));
+const latest = all.slice(0, 4);
+const featuredTools = site.tools.slice(0, 3);
+---
+<Base>
+  <Shell page="home">
+    <div class="home-intro">diego delgado — senior sre, barcelona.</div>
+    <div class="home-sub">{"// "}boring reliability, written down.</div>
+
+    <div class="status-strip">
+      <div>
+        <span class="muted">status</span><br/>
+        <span class={statusClass}>● {uptime.status}</span>
+      </div>
+      <div>
+        <span class="muted">uptime 30d</span><br/>
+        {uptimePct}
+      </div>
+      <div>
+        <span class="muted">p95</span><br/>
+        {p95}
+      </div>
+    </div>
+
+    <section class="section">
+      <div class="heading-1">## now</div>
+      <div class="dim" style="font-size:11px;margin-top:2px">updated {site.now.updated}</div>
+      <ul style="margin:10px 0 0;padding-left:18px">
+        {site.now.items.map((x) => <li style="margin-bottom:4px">{x}</li>)}
+      </ul>
+    </section>
+
+    <section class="section">
+      <div class="heading-1">## tools</div>
+      <div style="margin-top:8px">
+        {featuredTools.map((tool) => (
+          <a class="home-tools-row" href={`/tools/${tool.slug}/`}>
+            <span>→ {tool.title}</span>
+            <span class="blurb">{tool.blurb}</span>
+          </a>
+        ))}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="heading-1">## latest</div>
+      <div style="margin-top:8px">
+        {latest.map((w) => (
+          <a class="home-latest-row" href={`/writings/${w.slug}/`}>
+            <span class="date">{w.data.date}</span>
+            <span>{w.data.title}</span>
+            <span class="read-min">{w.data.read}min</span>
+          </a>
+        ))}
+      </div>
+    </section>
+  </Shell>
+</Base>

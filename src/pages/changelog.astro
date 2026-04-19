@@ -1,0 +1,49 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import { site } from "@/data/site";
+import { execSync } from "node:child_process";
+
+interface Entry { date: string; hash: string; msg: string }
+
+let entries: Entry[] = [];
+try {
+  // %h short hash, %ad author date (--date=short = YYYY-MM-DD), %s subject
+  const out = execSync(
+    "git log --pretty=format:%h%x09%ad%x09%s --date=short -n 100",
+    { stdio: ["ignore", "pipe", "pipe"] },
+  ).toString();
+
+  entries = out
+    .split("\n")
+    .filter(Boolean)
+    .map((line: string) => {
+      const [hash, date, ...rest] = line.split("\t");
+      return { hash, date, msg: rest.join("\t") };
+    });
+} catch (err) {
+  console.warn("[changelog] git log failed:", (err as Error).message.split("\n")[0]);
+}
+---
+<Base title="changelog">
+  <Shell page="changelog">
+    <div class="heading-1"># changelog</div>
+    <div class="subtitle">{"// "}git log --oneline. every change to this site.</div>
+
+    <div style="margin-top:18px">
+      {entries.length === 0 ? (
+        <div class="dim" style="font-size:12px">no commits available at build time.</div>
+      ) : entries.map((c) => (
+        <div class="changelog-row">
+          <span class="date">{c.date}</span>
+          <a class="hash" href={`https://github.com/${site.github}/diegodelgado.io/commit/${c.hash}`} target="_blank" rel="noopener">{c.hash}</a>
+          <span>{c.msg}</span>
+        </div>
+      ))}
+    </div>
+
+    <div style="margin-top:18px;font-size:11px;color:var(--muted)">
+      full history on <a href={`https://github.com/${site.github}/diegodelgado.io`} style="color:var(--accent)">github ↗</a>
+    </div>
+  </Shell>
+</Base>

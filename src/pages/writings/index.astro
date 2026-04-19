@@ -1,0 +1,36 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import { getCollection } from "astro:content";
+
+const all = await getCollection("writings", ({ data }) => !data.draft);
+all.sort((a, b) => b.data.date.localeCompare(a.data.date));
+
+const byYear: Record<string, typeof all> = {};
+for (const w of all) {
+  const y = w.data.date.slice(0, 4);
+  (byYear[y] ||= []).push(w);
+}
+const years = Object.keys(byYear).sort().reverse();
+---
+<Base title="writings">
+  <Shell page="writings">
+    <div class="heading-1"># writings</div>
+    <div class="subtitle">{all.length} entries. chronological, newest first.</div>
+
+    <div style="margin-top:20px">
+      {years.map((y) => (
+        <div class="year-group">
+          <div class="year-label">{y}</div>
+          {byYear[y].map((w) => (
+            <div class="writings-row">
+              <span class="date">{w.data.date.slice(5)}</span>
+              <a href={`/writings/${w.slug}/`}>{w.data.title}</a>
+              <span class="tag">{w.data.tags[0] ?? ""}</span>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  </Shell>
+</Base>

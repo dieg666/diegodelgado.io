@@ -1,0 +1,28 @@
+{
+  "name": "diegodelgado-io",
+  "type": "module",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "astro dev",
+    "prebuild": "node scripts/prebuild.mjs",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/mdx": "^3.1.9",
+    "@astrojs/preact": "^3.5.3",
+    "@resvg/resvg-js": "^2.6.2",
+    "astro": "^4.16.18",
+    "preact": "^10.25.4",
+    "satori": "^0.11.3",
+    "satori-html": "^0.3.2",
+    "shiki": "^1.24.4"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.8",
+    "@types/node": "^25.6.0",
+    "typescript": "^5.9.3"
+  }
+}

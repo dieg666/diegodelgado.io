@@ -1,0 +1,16 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import Fortune from "@/components/Fortune";
+import { site } from "@/data/site";
+---
+<Base title="404">
+  <Shell page="home" path="notfound">
+    <div class="notfound">
+      <div class="cmd">$ cat /notfound</div>
+      <div class="code">404</div>
+      <div class="sub">no such file or directory.</div>
+      <Fortune client:load fortunes={site.fortunes} />
+    </div>
+  </Shell>
+</Base>

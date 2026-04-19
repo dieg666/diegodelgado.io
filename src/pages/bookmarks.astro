@@ -1,0 +1,32 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import { site } from "@/data/site";
+
+function host(u: string) {
+  if (u === "#" || !u) return "";
+  return u.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+---
+<Base title="bookmarks">
+  <Shell page="bookmarks">
+    <div class="bookmarks">
+      <div class="heading-1"># bookmarks</div>
+      <div class="subtitle">what I keep open in tabs. {"//"} curated, not exhaustive.</div>
+
+      <div style="margin-top:16px">
+        {site.bookmarks.map((cat) => (
+          <div class="cat">
+            <div class="cat-label">## {cat.cat.toLowerCase()}</div>
+            {cat.items.map((it) => (
+              <div class="row">
+                <a href={it.u}>→ {it.t}</a>
+                <span class="url">{host(it.u)}</span>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  </Shell>
+</Base>

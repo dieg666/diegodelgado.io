@@ -1,0 +1,24 @@
+---
+import Base from "@/layouts/Base.astro";
+import Shell from "@/layouts/Shell.astro";
+import { site } from "@/data/site";
+---
+<Base title="about">
+  <Shell page="about">
+    <div class="about">
+      <div class="heading-1"># about</div>
+      <div style="margin-top:14px">
+        {site.about.map((p) => <p>{p}</p>)}
+      </div>
+
+      <div class="contact">
+        <div class="contact-title">contact</div>
+        <div class="contact-grid">
+          <span class="lbl">email</span><span><a href={`mailto:${site.email}`}>{site.email}</a></span>
+          <span class="lbl">github</span><span>@{site.github}</span>
+          <span class="lbl">location</span><span>{site.location}</span>
+        </div>
+      </div>
+    </div>
+  </Shell>
+</Base>
