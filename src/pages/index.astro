@@ -28,6 +28,7 @@ const featuredTools = site.tools.slice(0, 3);
         <span id="uptime-p95">—</span>
       </div>
     </div>
+    <div class="dim" style="font-size:11px;margin-top:4px">last check <span id="uptime-last">—</span></div>
 
     <section class="section">
       <div class="heading-1">## now</div>
@@ -65,11 +66,26 @@ const featuredTools = site.tools.slice(0, 3);
 </Base>
 <script>
   type UptimeStatus = "ok" | "down" | "unknown";
+  interface LastCheck {
+    ts: number;
+    ok: boolean;
+    http_status: number;
+    latency_ms: number;
+  }
   interface UptimePayload {
     status: UptimeStatus;
     uptime_pct: number | null;
     p95_ms: number | null;
     checks: number;
+    last_check: LastCheck | null;
+  }
+
+  function relativeTime(tsSec: number): string {
+    const diff = Math.max(0, Math.floor(Date.now() / 1000 - tsSec));
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
   }
 
   (async () => {
@@ -93,6 +109,14 @@ const featuredTools = site.tools.slice(0, 3);
       const p95El = document.getElementById("uptime-p95");
       if (p95El && data.p95_ms != null) {
         p95El.textContent = `${Math.round(data.p95_ms)}ms`;
+      }
+      const lastEl = document.getElementById("uptime-last");
+      if (lastEl && data.last_check) {
+        const ts = data.last_check.ts;
+        lastEl.textContent = relativeTime(ts);
+        setInterval(() => {
+          lastEl.textContent = relativeTime(ts);
+        }, 30_000);
       }
     } catch {
     } finally {
