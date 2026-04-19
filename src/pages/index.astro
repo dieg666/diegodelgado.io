@@ -4,35 +4,6 @@ import Shell from "@/layouts/Shell.astro";
 import { site } from "@/data/site";
 import { getCollection } from "astro:content";
 
-type UptimeStatus = "ok" | "down" | "unknown";
-interface UptimePayload {
-  status: UptimeStatus;
-  uptime_pct: number | null;
-  p95_ms: number | null;
-  checks: number;
-}
-
-async function fetchUptime(): Promise<UptimePayload> {
-  const fallback: UptimePayload = { status: "unknown", uptime_pct: null, p95_ms: null, checks: 0 };
-  try {
-    const ctl = new AbortController();
-    const timer = setTimeout(() => ctl.abort(), 4000);
-    const res = await fetch("https://diegodelgado.io/api/uptime", { signal: ctl.signal });
-    clearTimeout(timer);
-    if (!res.ok) return fallback;
-    return (await res.json()) as UptimePayload;
-  } catch {
-    return fallback;
-  }
-}
-
-const uptime = await fetchUptime();
-const statusClass =
-  uptime.status === "ok" ? "ok" : uptime.status === "down" ? "down" : "unknown";
-const uptimePct =
-  uptime.uptime_pct != null ? `${uptime.uptime_pct.toFixed(2)}%` : "—";
-const p95 = uptime.p95_ms != null ? `${Math.round(uptime.p95_ms)}ms` : "—";
-
 const all = await getCollection("writings", ({ data }) => !data.draft);
 all.sort((a, b) => b.data.date.localeCompare(a.data.date));
 const latest = all.slice(0, 4);
@@ -46,15 +17,15 @@ const featuredTools = site.tools.slice(0, 3);
     <div class="status-strip">
       <div>
         <span class="muted">status</span><br/>
-        <span class={statusClass}>● {uptime.status}</span>
+        <span id="uptime-status" class="unknown">● unknown</span>
       </div>
       <div>
         <span class="muted">uptime 30d</span><br/>
-        {uptimePct}
+        <span id="uptime-pct">—</span>
       </div>
       <div>
         <span class="muted">p95</span><br/>
-        {p95}
+        <span id="uptime-p95">—</span>
       </div>
     </div>
 
@@ -92,3 +63,40 @@ const featuredTools = site.tools.slice(0, 3);
     </section>
   </Shell>
 </Base>
+<script>
+  type UptimeStatus = "ok" | "down" | "unknown";
+  interface UptimePayload {
+    status: UptimeStatus;
+    uptime_pct: number | null;
+    p95_ms: number | null;
+    checks: number;
+  }
+
+  (async () => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), 4000);
+    try {
+      const res = await fetch("/api/uptime", { signal: ctl.signal });
+      if (!res.ok) return;
+      const data = (await res.json()) as UptimePayload;
+
+      const statusEl = document.getElementById("uptime-status");
+      if (statusEl) {
+        statusEl.className =
+          data.status === "ok" ? "ok" : data.status === "down" ? "down" : "unknown";
+        statusEl.textContent = `● ${data.status}`;
+      }
+      const pctEl = document.getElementById("uptime-pct");
+      if (pctEl && data.uptime_pct != null) {
+        pctEl.textContent = `${data.uptime_pct.toFixed(2)}%`;
+      }
+      const p95El = document.getElementById("uptime-p95");
+      if (p95El && data.p95_ms != null) {
+        p95El.textContent = `${Math.round(data.p95_ms)}ms`;
+      }
+    } catch {
+    } finally {
+      clearTimeout(timer);
+    }
+  })();
+</script>
