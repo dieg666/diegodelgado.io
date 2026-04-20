@@ -26,36 +26,44 @@ try {
 ---
 <div class="shell">
   <header class="shell-header">
-    <span class="who">diego@sre</span>
-    <span class="col">:</span>
-    <span class="path">~/{segment}</span>
-    <span class="prompt">$</span>
-    <span class="header-right">
-      <span class="domain">{site.domain}</span>
-      <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
-        <span class="when-light">☾</span>
-        <span class="when-dark">☀</span>
-      </button>
-    </span>
+    <div class="shell-inner">
+      <span class="who">diego@sre</span>
+      <span class="col">:</span>
+      <span class="path">~/{segment}</span>
+      <span class="prompt">$</span>
+      <span class="header-right">
+        <span class="domain">{site.domain}</span>
+        <button class="theme-toggle" type="button" aria-label="Toggle dark mode" title="Toggle dark mode">
+          <span class="when-light">☾</span>
+          <span class="when-dark">☀</span>
+        </button>
+      </span>
+    </div>
   </header>
 
   <nav class="shell-nav">
-    {nav.map((n) => (
-      <a href={n.href} aria-current={n.key === page ? "page" : undefined}>
-        {n.key === page ? `[${n.label}]` : n.label}
-      </a>
-    ))}
+    <div class="shell-inner">
+      {nav.map((n) => (
+        <a href={n.href} aria-current={n.key === page ? "page" : undefined}>
+          {n.key === page ? `[${n.label}]` : n.label}
+        </a>
+      ))}
+    </div>
   </nav>
 
   <main class="shell-body">
-    <slot />
+    <div class="shell-inner">
+      <slot />
+    </div>
   </main>
 
   <footer class="shell-footer">
-    <span>{"// "}last deploy {lastDeploy}</span>
-    {site.links.map((l) => (
-      <a href={l.url}>{l.label}</a>
-    ))}
+    <div class="shell-inner">
+      <span>{"// "}last deploy {lastDeploy}</span>
+      {site.links.map((l) => (
+        <a href={l.url}>{l.label}</a>
+      ))}
+    </div>
   </footer>
 </div>
 <script is:inline>
