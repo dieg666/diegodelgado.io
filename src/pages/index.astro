@@ -3,11 +3,12 @@ import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
 import { site } from "@/data/site";
 import { tools } from "@/tools";
+import { readStats } from "@/lib/read-stats";
 import { getCollection } from "astro:content";
 
 const all = await getCollection("writings", ({ data }) => !data.draft);
 all.sort((a, b) => b.data.date.localeCompare(a.data.date));
-const latest = all.slice(0, 4);
+const latest = all.slice(0, 4).map((w) => ({ ...w, stats: readStats(w.body) }));
 const featuredTools = tools.slice(0, 3);
 ---
 <Base>
@@ -58,7 +59,7 @@ const featuredTools = tools.slice(0, 3);
           <a class="home-latest-row" href={`/writings/${w.slug}/`}>
             <span class="date">{w.data.date}</span>
             <span>{w.data.title}</span>
-            <span class="read-min">{w.data.read}min</span>
+            <span class="read-min">{w.stats.read}min</span>
           </a>
         ))}
       </div>

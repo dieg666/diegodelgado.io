@@ -7,8 +7,6 @@ const writings = defineCollection({
     date: z.string(),
     excerpt: z.string(),
     tags: z.array(z.string()).default([]),
-    read: z.number(),
-    words: z.number(),
     draft: z.boolean().optional().default(false),
   }),
 });

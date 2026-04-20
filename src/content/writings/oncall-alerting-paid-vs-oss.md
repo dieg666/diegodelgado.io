@@ -3,8 +3,6 @@ title: "Why on-call alerting is mostly paid software"
 date: "2026-03-22"
 excerpt: "A frank look at the OSS gap. PagerDuty, Opsgenie, and Rootly didn't win by accident — and Alertmanager isn't what you think it is."
 tags: ["oncall", "alerting"]
-read: 11
-words: 2180
 ---
 
 Let's get the uncomfortable part out of the way. The on-call alerting space — the part that actually pages a human at 03:47 — is dominated by paid software. PagerDuty, Opsgenie, Splunk On-Call, Rootly, incident.io.

@@ -3,6 +3,7 @@ import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
 import { getCollection } from "astro:content";
 import { site } from "@/data/site";
+import { readStats } from "@/lib/read-stats";
 
 export async function getStaticPaths() {
   const posts = await getCollection("writings", ({ data }) => !data.draft);
@@ -20,6 +21,7 @@ export async function getStaticPaths() {
 
 const { post, newer, older } = Astro.props;
 const { Content } = await post.render();
+const { read, words } = readStats(post.body);
 const ghSrc = `https://github.com/${site.github}/diegodelgado.io/blob/main/src/content/writings/${post.slug}.md`;
 ---
 <Base title={post.data.title} description={post.data.excerpt} ogImage={`/og/${post.slug}.png`}>
@@ -28,9 +30,9 @@ const ghSrc = `https://github.com/${site.github}/diegodelgado.io/blob/main/src/c
       <div class="post-meta">
         <span class="post-date">{post.data.date}</span>
         <span class="post-date-sep">·</span>
-        <span>{post.data.read} min read</span>
+        <span>{read} min read</span>
         <span>·</span>
-        <span>{post.data.words.toLocaleString()} words</span>
+        <span>{words.toLocaleString()} words</span>
         <span>·</span>
         <a href={ghSrc} target="_blank" rel="noopener">view source ↗</a>
       </div>
