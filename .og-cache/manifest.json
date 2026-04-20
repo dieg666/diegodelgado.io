@@ -1,0 +1,11 @@
+{
+  "k8s-cronjob-footguns": "50d030331a59d79073c898f3e7ea003768f931e4c9ee02b7c0cef470cfb66735",
+  "oncall-alerting-paid-vs-oss": "b2467e712367ede14a2b6087419722ade85a18ca815ea52f975dedee297975d6",
+  "postmortem-culture-small-teams": "af27fa62acfc1dc695a313da65df5e6aefc6d1ab0084af7aa79d569662e6ed3e",
+  "prometheus-cardinality-budget": "bdeb1e57a400267a834e27723253c551a06cfaee2c7d31ecb28849ae5523841f",
+  "runbooks-are-for-humans": "17a415a18557a403f393b754344ce5321d5a668ea9e03ebdf8286b3007f36728",
+  "slo-math-without-tears": "b39c814999c5c2ce4a4c88474156ec560d7f910001e13694c3a2166a9d8bc2a0",
+  "synthetic-checks-that-matter": "90b1c42ab3aed57bc5507b0a600df6db906ffca008fb403faadbed24976c62b5",
+  "the-quiet-sev2": "04f1e40133404221108d81170f7d4bf79dde360ebca768431ff350f6ae7e366d",
+  "default": "b015cc06e53b9936cf36bb11420f0a9ae1a7e08ad8512934baed92e32f549bad"
+}
