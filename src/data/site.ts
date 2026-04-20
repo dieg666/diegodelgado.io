@@ -5,7 +5,6 @@ export const site = {
   location: "Barcelona, ES",
   github: "dieg666",
   email: "ddd.barna@gmail.com",
-  lastDeploy: "2026-04-18",
 
   now: {
     updated: "2026-04-12",

@@ -1,4 +1,5 @@
 ---
+import { execSync } from "node:child_process";
 import { nav, site, type NavKey } from "@/data/site";
 
 interface Props {
@@ -9,6 +10,19 @@ interface Props {
 
 const { page, path } = Astro.props;
 const segment = path ?? (page === "home" ? "" : page);
+
+// Last deploy ≈ last commit that made it into the build. Falls back to
+// today's date if git isn't available (tarball deploys, etc.).
+let lastDeploy: string;
+try {
+  lastDeploy = execSync("git log -1 --format=%ad --date=short", {
+    stdio: ["ignore", "pipe", "ignore"],
+  })
+    .toString()
+    .trim();
+} catch {
+  lastDeploy = new Date().toISOString().slice(0, 10);
+}
 ---
 <div class="shell">
   <header class="shell-header">
@@ -38,7 +52,7 @@ const segment = path ?? (page === "home" ? "" : page);
   </main>
 
   <footer class="shell-footer">
-    <span>{"// "}last deploy {site.lastDeploy}</span>
+    <span>{"// "}last deploy {lastDeploy}</span>
     {site.links.map((l) => (
       <a href={l.url}>{l.label}</a>
     ))}
