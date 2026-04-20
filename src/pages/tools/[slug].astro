@@ -2,7 +2,7 @@
 import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
 import { tools } from "@/tools";
-import SloCalculator from "@/tools/slo-calculator";
+import ErrorBudget from "@/tools/error-budget";
 
 // To add a hydratable tool: import its component above and add a case below.
 // The tool's meta lives in src/tools/<slug>/index.tsx and is picked up by the
@@ -25,8 +25,8 @@ const { meta } = Astro.props;
       <h1>{meta.title.toLowerCase()}</h1>
       <p class="pitch">{meta.blurb}</p>
 
-      {meta.slug === "slo-calculator" ? (
-        <SloCalculator client:load />
+      {meta.slug === "error-budget" ? (
+        <ErrorBudget client:load />
       ) : (
         <div class="tool-placeholder">
           {"// "}coming soon. this tool is on the list — sketch lives in the changelog.

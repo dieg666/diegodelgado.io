@@ -8,3 +8,4 @@ dist
 !.env.example
 .og-cache/fonts
 .screenshots
+.playwright-mcp
