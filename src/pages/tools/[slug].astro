@@ -1,23 +1,31 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
-import SloCalculator from "@/components/SloCalculator";
-import { site } from "@/data/site";
+import { tools } from "@/tools";
+import SloCalculator from "@/tools/slo-calculator";
+
+// To add a hydratable tool: import its component above and add a case below.
+// The tool's meta lives in src/tools/<slug>/index.tsx and is picked up by the
+// registry automatically — only interactive tools need this extra wiring, because
+// Astro's client:* directives require static component imports.
 
 export function getStaticPaths() {
-  return site.tools.map((t) => ({ params: { slug: t.slug }, props: { tool: t } }));
+  return tools.map(({ meta }) => ({
+    params: { slug: meta.slug },
+    props: { meta },
+  }));
 }
 
-const { tool } = Astro.props;
+const { meta } = Astro.props;
 ---
-<Base title={tool.title} description={tool.blurb}>
-  <Shell page="tools" path={`tools/${tool.slug}`}>
+<Base title={meta.title} description={meta.blurb}>
+  <Shell page="tools" path={`tools/${meta.slug}`}>
     <div class="tool">
-      <div class="breadcrumb">/ tools / {tool.slug}</div>
-      <h1>{tool.title.toLowerCase()}</h1>
-      <p class="pitch">{tool.blurb}</p>
+      <div class="breadcrumb">/ tools / {meta.slug}</div>
+      <h1>{meta.title.toLowerCase()}</h1>
+      <p class="pitch">{meta.blurb}</p>
 
-      {tool.slug === "slo-calculator" ? (
+      {meta.slug === "slo-calculator" ? (
         <SloCalculator client:load />
       ) : (
         <div class="tool-placeholder">

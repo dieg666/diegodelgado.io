@@ -1,7 +1,7 @@
 ---
 import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
-import { site } from "@/data/site";
+import { tools } from "@/tools";
 ---
 <Base title="tools">
   <Shell page="tools">
@@ -9,14 +9,14 @@ import { site } from "@/data/site";
     <div class="subtitle">small things that do one thing well. no tracking, no login.</div>
 
     <div style="margin-top:18px">
-      {site.tools.map((tool) => (
-        <a class="tools-row" href={`/tools/${tool.slug}/`}>
+      {tools.map(({ meta }) => (
+        <a class="tools-row" href={`/tools/${meta.slug}/`}>
           <div class="head">
             <span class="dollar">$</span>
-            <span class="title">{tool.title}</span>
-            <span class="slug">/{tool.slug}</span>
+            <span class="title">{meta.title}</span>
+            <span class="slug">/{meta.slug}</span>
           </div>
-          <div class="blurb">{tool.blurb}</div>
+          <div class="blurb">{meta.blurb}</div>
         </a>
       ))}
     </div>

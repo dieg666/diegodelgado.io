@@ -30,33 +30,6 @@ export const site = {
     "Your scariest incidents are the ones that don't page anyone.",
   ],
 
-  tools: [
-    {
-      slug: "slo-calculator",
-      title: "SLO calculator",
-      blurb: "Convert availability targets into minutes of error budget per window. Paste a target, pick a window, copy the math.",
-      tags: ["slo", "math"],
-    },
-    {
-      slug: "cronjob-checker",
-      title: "k8s CronJob checker",
-      blurb: "Paste a CronJob manifest. Get a lint report for the six footguns I wrote about.",
-      tags: ["k8s", "lint"],
-    },
-    {
-      slug: "burn-rate",
-      title: "Burn-rate alert helper",
-      blurb: "Pick an SLO and a window, get the multi-window multi-burn-rate Prometheus rules ready to paste.",
-      tags: ["alerting", "prometheus"],
-    },
-    {
-      slug: "incident-timer",
-      title: "Incident timer",
-      blurb: "A page that does one thing: start a timer, log timestamped notes, export as Markdown. No account.",
-      tags: ["incident"],
-    },
-  ],
-
   bookmarks: [
     {
       cat: "Reading",

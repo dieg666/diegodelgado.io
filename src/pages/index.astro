@@ -2,12 +2,13 @@
 import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
 import { site } from "@/data/site";
+import { tools } from "@/tools";
 import { getCollection } from "astro:content";
 
 const all = await getCollection("writings", ({ data }) => !data.draft);
 all.sort((a, b) => b.data.date.localeCompare(a.data.date));
 const latest = all.slice(0, 4);
-const featuredTools = site.tools.slice(0, 3);
+const featuredTools = tools.slice(0, 3);
 ---
 <Base>
   <Shell page="home">
@@ -41,10 +42,10 @@ const featuredTools = site.tools.slice(0, 3);
     <section class="section">
       <div class="heading-1">## tools</div>
       <div style="margin-top:8px">
-        {featuredTools.map((tool) => (
-          <a class="home-tools-row" href={`/tools/${tool.slug}/`}>
-            <span>→ {tool.title}</span>
-            <span class="blurb">{tool.blurb}</span>
+        {featuredTools.map(({ meta }) => (
+          <a class="home-tools-row" href={`/tools/${meta.slug}/`}>
+            <span>→ {meta.title}</span>
+            <span class="blurb">{meta.blurb}</span>
           </a>
         ))}
       </div>
