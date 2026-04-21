@@ -59,10 +59,16 @@ try {
 
   <footer class="shell-footer">
     <div class="shell-inner">
-      <span>{"// "}last deploy {lastDeploy}</span>
-      {site.links.map((l) => (
-        <a href={l.url}>{l.label}</a>
-      ))}
+      <span class="footer-meta">
+        {"// "}last deploy {lastDeploy}
+        {" · "}code <a href="https://spdx.org/licenses/MIT.html">mit</a>
+        {" · "}content <a href="https://creativecommons.org/licenses/by/4.0/">cc by 4.0</a>
+      </span>
+      <div class="footer-links">
+        {site.links.map((l) => (
+          <a href={l.url}>{l.label}</a>
+        ))}
+      </div>
     </div>
   </footer>
 </div>

@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
   "scripts": {
     "dev": "astro dev",
     "prebuild": "node scripts/prebuild.mjs && node scripts/generate-og.mjs",

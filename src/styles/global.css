@@ -139,8 +139,14 @@ html[data-theme="dark"]  .theme-toggle .when-light { display: none; }
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
+  justify-content: space-between;
 }
-.shell-footer a { color: var(--muted); }
+.shell-footer .footer-links {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.shell-footer a { color: var(--muted); white-space: nowrap; }
 .shell-footer a:hover { color: var(--accent); }
 
 /* ---------- prose primitives ---------- */
