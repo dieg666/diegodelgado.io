@@ -3,6 +3,7 @@ import Base from "@/layouts/Base.astro";
 import Shell from "@/layouts/Shell.astro";
 import { tools } from "@/tools";
 import ErrorBudget from "@/tools/error-budget";
+import IncidentTimeline from "@/tools/incident-timeline";
 
 // To add a hydratable tool: import its component above and add a case below.
 // The tool's meta lives in src/tools/<slug>/index.tsx and is picked up by the
@@ -27,6 +28,8 @@ const { meta } = Astro.props;
 
       {meta.slug === "error-budget" ? (
         <ErrorBudget client:load />
+      ) : meta.slug === "incident-timeline" ? (
+        <IncidentTimeline client:load />
       ) : (
         <div class="tool-placeholder">
           {"// "}coming soon. this tool is on the list — sketch lives in the changelog.

@@ -93,6 +93,9 @@ Astro's `client:*` directives require static imports — that's why the switch i
 
 Installed, but on Arch Linux the default `chrome` channel fails (looks at `/opt/google/chrome/chrome`). The MCP must be registered with `--browser chromium` so it uses the bundled chromium-1217 binary:
 
+**Screenshot location**: when taking MCP screenshots (e.g. `browser_take_screenshot`), always pass an absolute `filename` under `/tmp/` (e.g. `/tmp/tool-desktop.png`) so PNGs don't litter the repo root. Never commit screenshots.
+
+
 ```
 claude mcp add playwright -- npx -y @playwright/mcp@latest --browser chromium
 ```
