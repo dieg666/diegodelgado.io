@@ -52,12 +52,13 @@ function emptyState(): State {
   };
 }
 
-// ---------- URL state: #t=<urlencode(title)>&d=<base64url(gzip(compact))> ----------
+// ---------- URL state: #t=<urlencode(title)>&d=<base64url(framed-binary(state))> ----------
 //
-// Title is carried in plaintext for readability in the address bar.
-// Everything else goes through a compact schema (numeric severity, delta
-// seconds from `started`, numeric entry type) then gzip + base64url. Sizes
-// measured ~45% smaller than the previous lz-string whole-state scheme.
+// Title is plaintext so it stays readable in the address bar. Everything else
+// goes through a hand-rolled binary codec (flag-bit header, varint numbers,
+// length-prefixed UTF-8, zigzag-signed deltas), then adaptive deflate-raw
+// framing (skip compression when it doesn't help), then base64url. The header
+// byte's high nibble is a version marker — future format bumps switch on it.
 
 const IDX_TO_TYPE: EntryType[] = ["OBS", "ACT", "DEC", "COMM"];
 const TYPE_TO_IDX: Record<EntryType, number> = { OBS: 0, ACT: 1, DEC: 2, COMM: 3 };
@@ -65,81 +66,153 @@ const IDX_TO_SEV: Record<number, Severity> = { 1: "SEV1", 2: "SEV2", 3: "SEV3", 
 const SEV_TO_IDX: Record<Severity, number> = { SEV1: 1, SEV2: 2, SEV3: 3, SEV4: 4 };
 const DEFAULT_SEVERITY: Severity = "SEV2";
 
-type CompactEntry = [number, number, string];
-type Compact = {
-  v: 2;
-  s?: number;
-  sv?: string;
-  ic?: string;
-  st?: string;
-  e?: CompactEntry[];
-};
+const CODEC_VERSION = 1;
+const STARTED_EPOCH_SEC = Date.UTC(2025, 0, 1) / 1000;
 
-function stateToCompact(state: State): Compact {
-  const out: Compact = { v: 2 };
-  if (state.severity !== DEFAULT_SEVERITY) out.s = SEV_TO_IDX[state.severity];
-  if (state.services) out.sv = state.services;
-  if (state.ic) out.ic = state.ic;
-  if (state.started) out.st = state.started;
-  if (state.started && state.entries.length > 0) {
-    const startedMs = Date.parse(state.started);
-    out.e = state.entries.map((e) => [
-      Math.round((Date.parse(e.ts) - startedMs) / 1000),
-      TYPE_TO_IDX[e.type],
-      e.text,
-    ]);
+const FLAG_SEV = 0b1000;
+const FLAG_SV = 0b0100;
+const FLAG_IC = 0b0010;
+const FLAG_ST = 0b0001;
+
+const FRAME_RAW = 0x00;
+const FRAME_DEFLATE = 0x01;
+
+const utf8Encoder = new TextEncoder();
+const utf8Decoder = new TextDecoder("utf-8", { fatal: true });
+
+function writeVarint(out: number[], n: number): void {
+  if (!Number.isInteger(n) || n < 0) throw new Error("varint out of range");
+  while (n >= 128) {
+    out.push((n % 128) | 0x80);
+    n = Math.floor(n / 128);
   }
-  return out;
+  out.push(n);
 }
 
-function isCompactEntry(e: unknown): e is CompactEntry {
+function readVarint(bytes: Uint8Array, pos: number): [number, number] {
+  let n = 0;
+  let mult = 1;
+  for (let i = 0; i < 8; i++) {
+    if (pos >= bytes.length) throw new Error("varint truncated");
+    const b = bytes[pos++];
+    n += (b & 0x7f) * mult;
+    if ((b & 0x80) === 0) return [n, pos];
+    mult *= 128;
+  }
+  throw new Error("varint overflow");
+}
+
+function zigzagEncode(n: number): number {
+  return n >= 0 ? 2 * n : -2 * n - 1;
+}
+function zigzagDecode(n: number): number {
+  return n % 2 === 0 ? n / 2 : -(n + 1) / 2;
+}
+
+function writeString(out: number[], s: string): void {
+  const b = utf8Encoder.encode(s);
+  writeVarint(out, b.length);
+  for (let i = 0; i < b.length; i++) out.push(b[i]);
+}
+
+function readString(bytes: Uint8Array, pos: number): [string, number] {
+  const [len, p1] = readVarint(bytes, pos);
+  if (p1 + len > bytes.length) throw new Error("string truncated");
+  const s = utf8Decoder.decode(bytes.subarray(p1, p1 + len));
+  return [s, p1 + len];
+}
+
+function stateHasData(state: State): boolean {
   return (
-    Array.isArray(e) &&
-    e.length === 3 &&
-    typeof e[0] === "number" &&
-    Number.isFinite(e[0]) &&
-    typeof e[1] === "number" &&
-    IDX_TO_TYPE[e[1]] !== undefined &&
-    typeof e[2] === "string"
+    state.severity !== DEFAULT_SEVERITY ||
+    state.services.length > 0 ||
+    state.ic.length > 0 ||
+    state.started !== null ||
+    state.entries.length > 0
   );
 }
 
-function parseCompact(raw: unknown): Compact | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
-  if (r.v !== 2) return null;
-  if (r.s !== undefined && (typeof r.s !== "number" || !IDX_TO_SEV[r.s])) return null;
-  if (r.sv !== undefined && typeof r.sv !== "string") return null;
-  if (r.ic !== undefined && typeof r.ic !== "string") return null;
-  if (r.st !== undefined) {
-    if (typeof r.st !== "string" || Number.isNaN(Date.parse(r.st))) return null;
+function encodeStateBinary(state: State): Uint8Array {
+  if (!stateHasData(state)) return new Uint8Array(0);
+  const out: number[] = [];
+  let flags = 0;
+  if (state.severity !== DEFAULT_SEVERITY) flags |= FLAG_SEV;
+  if (state.services) flags |= FLAG_SV;
+  if (state.ic) flags |= FLAG_IC;
+  if (state.started) flags |= FLAG_ST;
+  out.push((CODEC_VERSION << 4) | flags);
+  if (flags & FLAG_SEV) out.push(SEV_TO_IDX[state.severity]);
+  if (flags & FLAG_SV) writeString(out, state.services);
+  if (flags & FLAG_IC) writeString(out, state.ic);
+  if (flags & FLAG_ST) {
+    const startedSec = Math.round(Date.parse(state.started!) / 1000);
+    writeVarint(out, zigzagEncode(startedSec - STARTED_EPOCH_SEC));
+    writeVarint(out, state.entries.length);
+    const anchorMs = startedSec * 1000;
+    for (const e of state.entries) {
+      const delta = Math.round((Date.parse(e.ts) - anchorMs) / 1000);
+      writeVarint(out, zigzagEncode(delta));
+      out.push(TYPE_TO_IDX[e.type]);
+      writeString(out, e.text);
+    }
   }
-  if (r.e !== undefined) {
-    if (!Array.isArray(r.e) || !r.e.every(isCompactEntry)) return null;
-  }
-  return r as Compact;
+  return Uint8Array.from(out);
 }
 
-function compactToState(c: Compact, title: string): State {
-  const severity: Severity = c.s !== undefined ? IDX_TO_SEV[c.s] : DEFAULT_SEVERITY;
-  const started = c.st ?? null;
-  const entries: Entry[] =
-    started && c.e
-      ? c.e.map(([delta, ti, text]) => ({
-          ts: new Date(Date.parse(started) + delta * 1000).toISOString(),
-          type: IDX_TO_TYPE[ti],
-          text,
-        }))
-      : [];
-  return {
-    v: 1,
-    title,
-    severity,
-    services: c.sv ?? "",
-    ic: c.ic ?? "",
-    started,
-    entries,
-  };
+function decodeStateBinary(bytes: Uint8Array, title: string): State {
+  if (bytes.length < 1) throw new Error("empty payload");
+  const header = bytes[0];
+  const version = (header >> 4) & 0x0f;
+  if (version !== CODEC_VERSION) throw new Error("unsupported version");
+  const flags = header & 0x0f;
+  let pos = 1;
+  let severity: Severity = DEFAULT_SEVERITY;
+  let services = "";
+  let ic = "";
+  let started: string | null = null;
+  const entries: Entry[] = [];
+  if (flags & FLAG_SEV) {
+    if (pos >= bytes.length) throw new Error("severity truncated");
+    const sev = IDX_TO_SEV[bytes[pos++]];
+    if (!sev) throw new Error("bad severity");
+    severity = sev;
+  }
+  if (flags & FLAG_SV) {
+    const [s, p] = readString(bytes, pos);
+    services = s;
+    pos = p;
+  }
+  if (flags & FLAG_IC) {
+    const [s, p] = readString(bytes, pos);
+    ic = s;
+    pos = p;
+  }
+  if (flags & FLAG_ST) {
+    const [zz, p1] = readVarint(bytes, pos);
+    pos = p1;
+    const startedSec = zigzagDecode(zz) + STARTED_EPOCH_SEC;
+    started = new Date(startedSec * 1000).toISOString();
+    const [count, p2] = readVarint(bytes, pos);
+    pos = p2;
+    const anchorMs = startedSec * 1000;
+    for (let i = 0; i < count; i++) {
+      const [zzd, pd] = readVarint(bytes, pos);
+      pos = pd;
+      const delta = zigzagDecode(zzd);
+      if (pos >= bytes.length) throw new Error("entry type truncated");
+      const type = IDX_TO_TYPE[bytes[pos++]];
+      if (!type) throw new Error("bad entry type");
+      const [text, pt] = readString(bytes, pos);
+      pos = pt;
+      entries.push({
+        ts: new Date(anchorMs + delta * 1000).toISOString(),
+        type,
+        text,
+      });
+    }
+  }
+  if (pos !== bytes.length) throw new Error("trailing bytes");
+  return { v: 1, title, severity, services, ic, started, entries };
 }
 
 function base64urlEncode(bytes: Uint8Array): string {
@@ -157,23 +230,39 @@ function base64urlDecode(b64: string): Uint8Array {
   return out;
 }
 
-async function gzipToBase64url(input: string): Promise<string> {
-  const data = new TextEncoder().encode(input);
-  const cs = new CompressionStream("gzip");
+async function deflateRaw(data: Uint8Array): Promise<Uint8Array> {
+  const cs = new CompressionStream("deflate-raw");
   const writer = cs.writable.getWriter();
-  void writer.write(data);
+  void writer.write(data as unknown as Uint8Array<ArrayBuffer>);
   void writer.close();
-  const compressed = new Uint8Array(await new Response(cs.readable).arrayBuffer());
-  return base64urlEncode(compressed);
+  return new Uint8Array(await new Response(cs.readable).arrayBuffer());
 }
 
-async function gunzipFromBase64url(b64: string): Promise<string> {
-  const bytes = base64urlDecode(b64);
-  const ds = new DecompressionStream("gzip");
+async function inflateRaw(data: Uint8Array): Promise<Uint8Array> {
+  const ds = new DecompressionStream("deflate-raw");
   const writer = ds.writable.getWriter();
-  void writer.write(bytes as unknown as Uint8Array<ArrayBuffer>);
+  void writer.write(data as unknown as Uint8Array<ArrayBuffer>);
   void writer.close();
-  return await new Response(ds.readable).text();
+  return new Uint8Array(await new Response(ds.readable).arrayBuffer());
+}
+
+async function frameAndCompress(raw: Uint8Array): Promise<Uint8Array> {
+  const compressed = await deflateRaw(raw);
+  const useDeflate = compressed.length < raw.length;
+  const payload = useDeflate ? compressed : raw;
+  const out = new Uint8Array(payload.length + 1);
+  out[0] = useDeflate ? FRAME_DEFLATE : FRAME_RAW;
+  out.set(payload, 1);
+  return out;
+}
+
+async function unframeAndDecompress(bytes: Uint8Array): Promise<Uint8Array> {
+  if (bytes.length < 1) throw new Error("empty frame");
+  const flag = bytes[0];
+  const payload = bytes.subarray(1);
+  if (flag === FRAME_RAW) return payload;
+  if (flag === FRAME_DEFLATE) return await inflateRaw(payload);
+  throw new Error("unknown frame");
 }
 
 function parseHashSegments(raw: string): { t: string; d: string } {
@@ -193,21 +282,11 @@ function parseHashSegments(raw: string): { t: string; d: string } {
   return { t, d };
 }
 
-function compactHasData(c: Compact): boolean {
-  return (
-    c.s !== undefined ||
-    !!c.sv ||
-    !!c.ic ||
-    !!c.st ||
-    (Array.isArray(c.e) && c.e.length > 0)
-  );
-}
-
 async function encodeStateToHash(state: State): Promise<string> {
   const title = state.title.trim();
   const t = title ? encodeURIComponent(title) : "";
-  const compact = stateToCompact(state);
-  const d = compactHasData(compact) ? await gzipToBase64url(JSON.stringify(compact)) : "";
+  const raw = encodeStateBinary(state);
+  const d = raw.length > 0 ? base64urlEncode(await frameAndCompress(raw)) : "";
   const parts: string[] = [];
   if (t) parts.push(`t=${t}`);
   if (d) parts.push(`d=${d}`);
@@ -217,18 +296,14 @@ async function encodeStateToHash(state: State): Promise<string> {
 async function decodeStateFromHash(raw: string): Promise<State | null> {
   const { t, d } = parseHashSegments(raw);
   if (!t && !d) return null;
-  let compact: Compact = { v: 2 };
-  if (d) {
-    try {
-      const json = await gunzipFromBase64url(d);
-      const parsed = parseCompact(JSON.parse(json));
-      if (!parsed) return null;
-      compact = parsed;
-    } catch {
-      return null;
-    }
+  if (!d) return { ...emptyState(), title: t };
+  try {
+    const framed = base64urlDecode(d);
+    const bytes = await unframeAndDecompress(framed);
+    return decodeStateBinary(bytes, t);
+  } catch {
+    return null;
   }
-  return compactToState(compact, t);
 }
 
 function utcHMS(iso: string): string {
